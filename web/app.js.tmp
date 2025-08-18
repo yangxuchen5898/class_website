@@ -1,0 +1,348 @@
+// 前端单页应用 - 使用 localStorage 保存文档，sessionStorage 存储当前用户信息
+// 初始用户列表
+const USERS = {
+  '24122738': { name: '张三', password: '111111' },
+  '24122739': { name: '李四', password: '111111' }
+  // 其他用户数据将从 Excel 导入
+};
+
+// DOM
+const btnLogin = document.getElementById('btn-login');
+const btnLogout = document.getElementById('btn-logout');
+const welcome = document.getElementById('welcome');
+const loginModal = document.getElementById('login-modal');
+const loginSubmit = document.getElementById('login-submit');
+const loginCancel = document.getElementById('login-cancel');
+const loginUsername = document.getElementById('login-username');
+const loginPassword = document.getElementById('login-password');
+const changePasswordModal = document.getElementById('change-password-modal');
+const changePasswordSubmit = document.getElementById('change-password-submit');
+const changePasswordCancel = document.getElementById('change-password-cancel');
+const oldPassword = document.getElementById('old-password');
+const newPassword = document.getElementById('new-password');
+const authPanel = document.getElementById('auth-panel');
+const pleaseLogin = document.getElementById('please-login');
+const docListEl = document.getElementById('docs');
+const docTitle = document.getElementById('doc-title');
+const docContent = document.getElementById('doc-content');
+const saveDocBtn = document.getElementById('save-doc');
+const newDocBtn = document.getElementById('new-doc');
+const previewToggle = document.getElementById('preview-toggle');
+const previewEl = document.getElementById('preview');
+const searchInput = document.getElementById('search');
+
+let currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+let editingId = null;
+let docs = JSON.parse(localStorage.getItem('docs')||'[]');
+
+function showLoginModal(){ loginModal.style.display='flex'; }
+function hideLoginModal(){ loginModal.style.display='none'; loginUsername.value=''; loginPassword.value=''; }
+function showChangePasswordModal(){ changePasswordModal.style.display='flex'; }
+function hideChangePasswordModal(){ changePasswordModal.style.display='none'; oldPassword.value=''; newPassword.value=''; }
+
+btnLogin.addEventListener('click', ()=>{ showLoginModal(); });
+loginCancel.addEventListener('click', hideLoginModal);
+loginSubmit.addEventListener('click', ()=>{
+  const username = loginUsername.value.trim();
+  const password = loginPassword.value.trim();
+  
+  const user = USERS[username];
+  if (!user) {
+    alert('账号无效，请确认学号');
+    return;
+  }
+  if (password !== user.password) {
+    alert('密码错误');
+    return;
+  }
+
+  currentUser = { id: username, name: user.name };
+  sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+  hideLoginModal();
+  renderAuth();
+  renderList();
+});
+
+btnLogout.addEventListener('click', ()=>{
+  sessionStorage.removeItem('currentUser');
+  currentUser = null;
+  renderAuth();
+  renderList();
+});
+
+// 修改密码相关事件监听器
+changePasswordSubmit.addEventListener('click', ()=>{
+  const oldPwd = oldPassword.value.trim();
+  const newPwd = newPassword.value.trim();
+  if(!newPwd) {
+    alert('请输入新密码');
+    return;
+  }
+  
+  const user = USERS[currentUser.id];
+  if (user.password !== oldPwd) {
+    alert('原密码错误');
+    return;
+  }
+  
+  user.password = newPwd;
+  alert('密码修改成功');
+  hideChangePasswordModal();
+});
+
+changePasswordCancel.addEventListener('click', hideChangePasswordModal);
+
+function renderAuth(){ 
+  if(currentUser){ 
+    welcome.innerHTML = `你好，${currentUser.name} <button onclick="showChangePasswordModal()">修改密码</button>`; 
+    btnLogin.style.display='none'; 
+    btnLogout.style.display='inline-block'; 
+    authPanel.style.display='block'; 
+    pleaseLogin.style.display='none'; 
+  } else { 
+    welcome.textContent=''; 
+    btnLogin.style.display='inline-block'; 
+    btnLogout.style.display='none'; 
+    authPanel.style.display='none'; 
+    pleaseLogin.style.display='block'; 
+  }
+}
+
+function saveDocsToStorage(){ localStorage.setItem('docs', JSON.stringify(docs)); }
+
+function generateId(){ return 'doc_' + Date.now() + '_' + Math.floor(Math.random()*1000); }
+
+function renderList(){ 
+  const q = searchInput.value.trim().toLowerCase();
+  docListEl.innerHTML='';
+  const sorted = docs.slice().sort((a,b)=>b.updatedAt - a.updatedAt);
+  sorted.filter(d=>{
+    if(!q) return true;
+    return (d.title && d.title.toLowerCase().includes(q)) || (d.ownerName && d.ownerName.includes(q));
+  }).forEach(d=>{
+    const li = document.createElement('li');
+    const left = document.createElement('div');
+    left.innerHTML = `<div><strong>${escapeHtml(d.title||'(无标题)')}</strong></div><div class='meta'>作者: ${d.ownerName} (${d.owner}) · ${new Date(d.updatedAt).toLocaleString()}</div>`;
+    const actions = document.createElement('div');
+    actions.style.display='flex'; 
+    actions.style.gap='6px';
+
+    const viewBtn = document.createElement('button'); 
+    viewBtn.textContent='查看'; 
+    viewBtn.onclick=()=>{ openDoc(d.id, false); };
+    
+    const editBtn = document.createElement('button'); 
+    editBtn.textContent='编辑'; 
+    editBtn.onclick=()=>{ 
+      if(!currentUser){ alert('请先登录'); return; } 
+      openDoc(d.id, true); 
+    };
+    
+    const delBtn = document.createElement('button'); 
+    delBtn.textContent='删除'; 
+    delBtn.onclick=()=>{ 
+      if(!currentUser || currentUser.id !== d.owner){ 
+        alert('只有作者可删除'); 
+        return;
+      } 
+      if(confirm('确认删除？')){ 
+        docs = docs.filter(x=>x.id!==d.id); 
+        saveDocsToStorage(); 
+        renderList(); 
+      }
+    };
+    
+    const likeBtn = document.createElement('button'); 
+    likeBtn.textContent=`❤ ${d.likes||0}`; 
+    likeBtn.onclick=()=>{ 
+      d.likes = (d.likes||0)+1; 
+      d.updatedAt = Date.now(); 
+      saveDocsToStorage(); 
+      renderList(); 
+    };
+
+    [viewBtn, editBtn, delBtn, likeBtn].forEach(b=>{ 
+      b.style.padding='4px 8px'; 
+      b.style.border='1px solid #ccc'; 
+      b.style.background='#fff'; 
+      b.style.cursor='pointer'; 
+    });
+
+    actions.appendChild(viewBtn); 
+    actions.appendChild(editBtn); 
+    actions.appendChild(delBtn); 
+    actions.appendChild(likeBtn);
+    li.appendChild(left); 
+    li.appendChild(actions);
+    docListEl.appendChild(li);
+  });
+}
+
+function openDoc(id, forEdit){ 
+  const d = docs.find(x=>x.id===id); 
+  if(!d) return; 
+  editingId = forEdit? d.id : null; 
+  docTitle.value = d.title || ''; 
+  docContent.value = d.content || '';
+  if(forEdit){ 
+    if(!currentUser){ 
+      alert('请先登录'); 
+      return; 
+    } 
+    if(currentUser.id !== d.owner && !confirm('你不是作者，确定以编辑者身份覆盖？')){ 
+      return; 
+    } 
+  }
+  previewEl.style.display='none'; 
+  previewToggle.textContent='预览'; 
+  renderPreviewIfVisible(); 
+}
+
+function renderPreviewIfVisible(){ 
+  if(previewEl.style.display==='block') 
+    previewEl.innerHTML = marked.parse(docContent.value||''); 
+}
+
+saveDocBtn.addEventListener('click', ()=>{
+  if(!currentUser){ 
+    alert('请先登录'); 
+    return; 
+  }
+  const title = docTitle.value.trim();
+  if(!title){ 
+    alert('请填写标题'); 
+    return; 
+  }
+  const content = docContent.value;
+  if(editingId){ 
+    const d = docs.find(x=>x.id===editingId); 
+    if(!d) return; 
+    d.title = title; 
+    d.content = content; 
+    d.updatedAt = Date.now(); 
+    d.owner = d.owner || currentUser.id;
+    d.ownerName = d.ownerName || currentUser.name;
+  } else { 
+    const doc = { 
+      id: generateId(), 
+      title, 
+      content, 
+      owner: currentUser.id,
+      ownerName: currentUser.name,
+      createdAt: Date.now(), 
+      updatedAt: Date.now(), 
+      likes:0 
+    }; 
+    docs.push(doc); 
+    editingId = doc.id; 
+  }
+  saveDocsToStorage(); 
+  renderList(); 
+  alert('保存成功');
+});
+
+newDocBtn.addEventListener('click', ()=>{ 
+  if(!currentUser){ 
+    alert('请先登录'); 
+    return; 
+  } 
+  editingId = null; 
+  docTitle.value=''; 
+  docContent.value=''; 
+  previewEl.style.display='none'; 
+  previewToggle.textContent='预览'; 
+});
+
+previewToggle.addEventListener('click', ()=>{
+  if(previewEl.style.display==='block'){ 
+    previewEl.style.display='none'; 
+    previewToggle.textContent='预览'; 
+  } else { 
+    previewEl.style.display='block'; 
+    previewEl.innerHTML = marked.parse(docContent.value||''); 
+    previewToggle.textContent='隐藏预览'; 
+  }
+});
+
+docContent.addEventListener('input', ()=>{ renderPreviewIfVisible(); });
+searchInput.addEventListener('input', renderList);
+
+// small utility
+function escapeHtml(s){ 
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); 
+}
+
+// carousel simple
+(function initCarousel(){
+  console.log('[Carousel] Starting initialization');
+  const slides = document.querySelector('.carousel .slides');
+  if(!slides){ console.warn('[Carousel] .carousel .slides element not found'); return; }
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  if(!prevBtn || !nextBtn){ console.warn('[Carousel] Navigation buttons not found'); return; }
+  let idx = 0;
+  let total = 0;
+
+  console.log('[Carousel] Elements found');
+  
+  // Use embedded CAROUSEL_PHOTOS
+  const list = window.CAROUSEL_PHOTOS || [];
+  total = list.length;
+  console.log(`[Carousel] Building carousel with ${total} photos`);
+
+  // Build slides
+  slides.innerHTML = '';
+  for(let i = 0; i < list.length; i++){
+    const img = document.createElement('img');
+    const src = `class_photos/${list[i]}`;
+    console.log(`[Carousel] Adding image ${i+1}/${total}:`, src);
+    img.src = src;
+    img.alt = `photo${i+1}`;
+    img.style.minWidth = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    img.onerror = () => {
+      console.warn('[Carousel] Failed to load image:', src);
+      img.style.opacity = '0.4';
+      img.style.background = '#eee';
+    };
+    slides.appendChild(img);
+  }
+
+  // Setup controls
+  function show(i){
+    console.log(`[Carousel] Showing slide ${i+1}/${total}`);
+    slides.style.transform = `translateX(${-i*100}%)`; 
+  }
+
+  // Add navigation
+  prevBtn.addEventListener('click', () => {
+    idx = (idx-1+total)%total;
+    show(idx);
+  });
+
+  nextBtn.addEventListener('click', () => {
+    idx = (idx+1)%total;
+    show(idx);
+  });
+
+  // Start auto-rotation
+  setInterval(() => {
+    if(total > 0){
+      idx = (idx+1)%total;
+      show(idx);
+    }
+  }, 5000);
+
+  // Show first slide
+  if(total > 0) show(0);
+
+  console.log('[Carousel] Setup complete');
+})();
+
+// initial render
+renderAuth(); 
+renderList();
+
+// expose for debugging
+window._APP = {USERS, docs};

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BUG终结智创营</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- KaTeX for LaTeX rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <!-- highlight.js for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.8.0/styles/github.min.css">
+  <!-- 用于渲染 Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.8.0/lib/common.min.js"></script>
+  <!-- CodeMirror 5 (classic, global API) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+  <!-- DOMPurify for sanitizing rendered HTML -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <img id="logo" src="class_logo/班徽.png" alt="班徽" />
+      <h1>BUG终结智创营</h1>
+    </div>
+    <div class="user-area">
+      <span id="welcome"></span>
+      <button id="btn-login">登录</button>
+      <button id="btn-logout" style="display:none">登出</button>
+    </div>
+  </header>
+
+  <section class="carousel" id="carousel">
+    <div class="slides"></div>
+    <div class="carousel-controls">
+      <button id="prev">‹</button>
+      <button id="next">›</button>
+    </div>
+  </section>
+
+  <main class="container">
+    <aside class="doc-list">
+      <div class="list-header">
+        <h2>知识共享库</h2>
+        <input id="search" placeholder="搜索标题或作者" />
+      </div>
+      <ul id="docs"></ul>
+    </aside>
+
+    <section class="editor-area">
+      <div id="auth-panel" class="auth-panel" style="display:none">
+        <h3>新建 / 编辑文档</h3>
+        <input id="doc-title" placeholder="标题（必填）" />
+        <div class="editor-controls">
+          <button id="save-doc">保存</button>
+          <button id="new-doc">新建空文档</button>
+        </div>
+        <div class="editor-split">
+          <div id="editor-wrapper" class="editor-full">
+            <div id="editor" style="width:100%;height:100%"></div>
+            <div id="render-overlay" class="render-overlay" style="display:none;position:absolute;inset:0;overflow:auto;padding:12px;background:#fff;">
+              <!-- 点击回到编辑 -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="please-login" class="please-login">
+        <p>请先登录以编辑或分享知识。</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- 简易登录表单（浮层） -->
+  <div id="login-modal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h3>登录</h3>
+      <input id="login-username" placeholder="学号" />
+      <input id="login-password" type="password" placeholder="密码" />
+      <div class="modal-actions">
+        <button id="login-submit">登录</button>
+        <button id="login-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 修改密码表单（浮层） -->
+  <div id="change-password-modal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h3>修改密码</h3>
+      <input id="old-password" type="password" placeholder="原密码" />
+      <input id="new-password" type="password" placeholder="新密码" />
+      <div class="modal-actions">
+        <button id="change-password-submit">确认</button>
+        <button id="change-password-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <small>BUG终结智创营 · 班级知识共享平台（客户端）</small>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    // 内嵌轮播图片列表，避免跨域或 fetch 问题（文件名仅为 class_photos 下的文件名）
+    window.CAROUSEL_PHOTOS = [
+      "微信图片_20250817101018_181.jpg",
+      "微信图片_20250817101018_182.jpg",
+      "微信图片_20250817101018_183.jpg",
+      "微信图片_20250817101018_184.jpg",
+      "微信图片_20250817101018_185.jpg"
+    ];
+  </script>
+</body>
+</html>
