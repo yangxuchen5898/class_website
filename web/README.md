@@ -44,7 +44,7 @@ http://localhost:8000
 
 ## 线上运行
 
-本项目已上传至阿里云，注册域名为[classbcxhzcwl.top](http://classbcxhzcwl.top/)（需要科学上网）
+本项目已上传至阿里云，注册域名为[classbcxhzcwl.top](http://classbcxhzcwl.top/)
 
 目前暂未添加后台服务器代码，所以在网站上做的修改不会同步
 
